@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- 仮の博士の絵。本番の絵ができたら、このファイルを差し替えるか、src/lib/data.ts の HAKASE_IMAGE を変える -->
+  <circle cx="60" cy="60" r="58" fill="#e9dcc3"/>
+  <path d="M22 108 Q60 78 98 108 L98 120 L22 120 Z" fill="#5b4a8a"/>
+  <ellipse cx="60" cy="54" rx="28" ry="31" fill="#f7d9b8"/>
+  <path d="M30 46 Q26 22 44 24 Q52 14 60 22 Q68 14 76 24 Q94 22 90 46 Q84 34 60 36 Q36 34 30 46 Z" fill="#ffffff" stroke="#d8d2c8" stroke-width="1.5"/>
+  <path d="M34 66 Q36 98 60 102 Q84 98 86 66 Q76 76 60 74 Q44 76 34 66 Z" fill="#ffffff" stroke="#d8d2c8" stroke-width="1.5"/>
+  <path d="M46 70 Q53 64 60 69 Q67 64 74 70 Q67 73 60 71 Q53 73 46 70 Z" fill="#f0ece4" stroke="#cfc8bc"/>
+  <circle cx="48" cy="54" r="9" fill="none" stroke="#6b4a2b" stroke-width="2.5"/>
+  <circle cx="72" cy="54" r="9" fill="none" stroke="#6b4a2b" stroke-width="2.5"/>
+  <line x1="57" y1="54" x2="63" y2="54" stroke="#6b4a2b" stroke-width="2.5"/>
+  <path d="M44 55 Q48 51 52 55" fill="none" stroke="#3b2a1a" stroke-width="2" stroke-linecap="round"/>
+  <path d="M68 55 Q72 51 76 55" fill="none" stroke="#3b2a1a" stroke-width="2" stroke-linecap="round"/>
+  <path d="M40 43 Q47 39 54 42" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M66 42 Q73 39 80 43" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="60" cy="62" rx="4" ry="3" fill="#e9b48f"/>
+  <circle cx="40" cy="64" r="4" fill="#f4b6a6" opacity=".6"/>
+  <circle cx="80" cy="64" r="4" fill="#f4b6a6" opacity=".6"/>
+</svg>
