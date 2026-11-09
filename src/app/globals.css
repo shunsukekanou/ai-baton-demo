@@ -201,3 +201,18 @@ details summary { cursor: pointer; color: var(--main-dark); font-size: 15px; }
   line-height: 1.6;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
+
+/* LINEなどの簡易画面で開いたときの案内 */
+.inapp {
+  background: #fff3df;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.inapp p { margin: 0 0 8px; }
+.inapp a.btn-small { display: inline-block; text-decoration: none; text-align: center; }
+.inapp .row-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.inapp .btn-small { white-space: nowrap; }

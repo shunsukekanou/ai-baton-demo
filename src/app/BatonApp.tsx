@@ -19,6 +19,7 @@ import {
 } from '@/lib/data';
 import { buildLetter } from '@/lib/letter';
 import { copyText, readText } from '@/lib/clipboard';
+import { externalUrl, isInAppBrowser } from '@/lib/inapp';
 import {
   clearInput,
   clearSaved,
@@ -113,6 +114,14 @@ export default function BatonApp() {
   useEffect(() => {
     if (s) screenRef.current = s.screen as Screen;
   }, [s]);
+
+  // LINE などの簡易画面で開いているか（開いていたら、ブラウザで開き直す案内を出す）
+  const [inApp, setInApp] = useState(false);
+  const [inAppOk, setInAppOk] = useState(false); // 「このまま使う」を選んだ
+  const [urlCopied, setUrlCopied] = useState(false);
+  useEffect(() => {
+    setInApp(isInAppBrowser());
+  }, []);
 
   // 戻るスワイプのお知らせ（数秒で消える）
   const [toast, setToast] = useState('');
@@ -360,6 +369,28 @@ export default function BatonApp() {
         )}
       </header>
       <main className="main" data-screen={screen}>
+        {inApp && !inAppOk && (
+          <div className="inapp" role="alert">
+            <p>
+              <b>LINEなどの中で開いておるようじゃ。</b>ここでは、名前やチケット、ノートが、ふつうのブラウザ（ChromeやSafari）とは別の場所に保存されてしまうぞ。
+              コピーやAIの画面も、うまく動かないことがある。ブラウザで開き直しておくれ。
+            </p>
+            <div className="row-buttons">
+              <a className="btn-small" href={externalUrl()}>ブラウザで開き直す</a>
+              <button
+                type="button"
+                className="btn-small"
+                onClick={async () => {
+                  setUrlCopied(await copyText(window.location.origin + window.location.pathname));
+                }}
+              >
+                URLをコピー
+              </button>
+              <button type="button" className="btn-link" onClick={() => setInAppOk(true)}>このまま使う</button>
+            </div>
+            {urlCopied && <p className="ok-text">コピーしたぞ。ChromeやSafariを開いて、貼り付けておくれ。</p>}
+          </div>
+        )}
         {body}
       </main>
       {toast && (
