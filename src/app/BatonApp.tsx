@@ -19,7 +19,7 @@ import {
 } from '@/lib/data';
 import { buildLetter } from '@/lib/letter';
 import { copyText, readText } from '@/lib/clipboard';
-import { externalUrl, isInAppBrowser } from '@/lib/inapp';
+import { browserTarget, externalUrl, isInAppBrowser } from '@/lib/inapp';
 import {
   clearInput,
   clearSaved,
@@ -119,6 +119,7 @@ export default function BatonApp() {
   const [inApp, setInApp] = useState(false);
   const [inAppOk, setInAppOk] = useState(false); // 「このまま使う」を選んだ
   const [urlCopied, setUrlCopied] = useState(false);
+  const [tried, setTried] = useState(false); // 「ブラウザで開き直す」を押した
   useEffect(() => {
     setInApp(isInAppBrowser());
   }, []);
@@ -376,7 +377,20 @@ export default function BatonApp() {
               コピーやAIの画面も、うまく動かないことがある。ブラウザで開き直しておくれ。
             </p>
             <div className="row-buttons">
-              <a className="btn-small" href={externalUrl()}>ブラウザで開き直す</a>
+              <button
+                type="button"
+                className="btn-small"
+                onClick={() => {
+                  setTried(true);
+                  // 外のブラウザへ出る。出られなかったとき（この画面が残っているとき）のために、少しあとで印つきのURLへも進む
+                  window.location.href = browserTarget(window.location.href);
+                  window.setTimeout(() => {
+                    if (document.visibilityState === 'visible') window.location.href = externalUrl();
+                  }, 1800);
+                }}
+              >
+                ブラウザで開き直す
+              </button>
               <button
                 type="button"
                 className="btn-small"
@@ -389,6 +403,7 @@ export default function BatonApp() {
               <button type="button" className="btn-link" onClick={() => setInAppOk(true)}>このまま使う</button>
             </div>
             {urlCopied && <p className="ok-text">コピーしたぞ。ChromeやSafariを開いて、貼り付けておくれ。</p>}
+            {tried && !urlCopied && <p className="hint">ブラウザが開かなかったら、「URLをコピー」を押して、ChromeやSafariに貼り付けておくれ。</p>}
           </div>
         )}
         {body}

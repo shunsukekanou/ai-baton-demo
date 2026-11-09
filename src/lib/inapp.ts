@@ -20,3 +20,24 @@ export function externalUrl(href: string = window.location.href): string {
   u.searchParams.set('openExternalBrowser', '1');
   return u.toString();
 }
+
+/**
+ * 簡易画面から、標準のブラウザへ出るための住所を、機種ごとに作る。
+ *   ・Android：intent: 方式で Chrome を開く（Chrome が無いときは、ふつうのURLへ）
+ *   ・iPhone：x-safari-https: 方式で Safari を開く（動かない簡易画面もある。その場合は、あとの手順でURLのコピーを案内する）
+ *   ・そのほか：LINE が標準のブラウザで開くための印（?openExternalBrowser=1）をつけたURL
+ * ※ どれも、実物の機種・アプリでの動きは確認できていない（一般に使われている方法）。
+ */
+export function browserTarget(href: string, ua: string = typeof navigator === 'undefined' ? '' : navigator.userAgent): string {
+  const u = new URL(href);
+  u.searchParams.delete('openExternalBrowser');
+  const clean = u.toString();
+  if (/Android/i.test(ua)) {
+    const path = `${u.host}${u.pathname}${u.search}`;
+    return `intent://${path}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(clean)};end`;
+  }
+  if (/iPhone|iPad|iPod/.test(ua)) {
+    return clean.replace(/^https:/, 'x-safari-https:').replace(/^http:/, 'x-safari-http:');
+  }
+  return externalUrl(clean);
+}
