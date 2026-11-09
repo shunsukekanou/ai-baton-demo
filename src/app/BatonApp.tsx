@@ -48,6 +48,8 @@ const QUESTIONS: Screen[] = ['q1', 'q2', 'q3', 'q4', 'q5'];
 
 /** これより長く開いていなかったら、前の画面のつづきからではなく、書斎から始める（AIに相談して戻ってくる間は、つづきから） */
 const RESUME_MS = 6 * 60 * 60 * 1000;
+/** 同じブラウザの画面（タブ）の中かどうかの印。新しくURLを開いたとき（LINEから開き直したときなど）は無いので、書斎から始める */
+const SESSION_KEY = 'ai-baton:session';
 /** つづきからにしない画面（最初から開いてよい画面） */
 const HOME_SCREENS: Screen[] = ['welcome', 'study', 'chat', 'notes'];
 
@@ -101,7 +103,15 @@ export default function BatonApp() {
   // 起動時：LocalStorage から読み込む（サーバーでの下書き表示と食い違わないよう、読み込み後に描く）
   useEffect(() => {
     const loaded = loadSaved();
-    const stale = !loaded.savedAt || Date.now() - loaded.savedAt > RESUME_MS;
+    let sameSession = false;
+    try {
+      sameSession = window.sessionStorage.getItem(SESSION_KEY) === '1';
+      window.sessionStorage.setItem(SESSION_KEY, '1');
+    } catch {
+      /* 使えないときは、書斎から始める */
+    }
+    // 新しく開いたとき・時間がたっているときは、つづきからではなく書斎から。同じ画面（タブ）の読み込み直しは、つづきから
+    const stale = !sameSession || !loaded.savedAt || Date.now() - loaded.savedAt > RESUME_MS;
     let screen = validScreen(loaded, loaded.screen);
     if (stale && !HOME_SCREENS.includes(screen)) screen = validScreen(loaded, 'study'); // 時間がたっている：書斎から
     else if (!HOME_SCREENS.includes(screen)) setToast('前のつづきから開いたぞ。最初からやるなら、「もどる」で書斎へ戻るんじゃ。');
