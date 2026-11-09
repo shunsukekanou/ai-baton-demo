@@ -185,3 +185,19 @@ details summary { cursor: pointer; color: var(--main-dark); font-size: 15px; }
   .howto-grid { grid-template-columns: 1fr; }
   .hakase-img { width: 68px; height: 68px; }
 }
+
+/* 戻るスワイプのお知らせ（画面の下に数秒だけ出る） */
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 88px;
+  z-index: 50;
+  background: var(--wood, #8a5a2b);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AI_SERVICES,
   AIZUCHI,
@@ -20,11 +20,14 @@ import {
 import { buildLetter } from '@/lib/letter';
 import { copyText, readText } from '@/lib/clipboard';
 import {
+  clearInput,
   clearSaved,
   initialSaved,
+  loadInput,
   loadSaved,
   newDraft,
   refreshMonth,
+  saveInput,
   saveSaved,
   ticketsLeft,
   today,
@@ -41,6 +44,26 @@ type Screen =
 const SCREENS: Screen[] = ['welcome', 'study', 'chat', 'q1', 'q2', 'q3', 'q4', 'q5', 'confirm', 'letter', 'depart', 'return', 'notes'];
 const NEEDS_DRAFT: Screen[] = ['q1', 'q2', 'q3', 'q4', 'q5', 'confirm', 'letter', 'depart', 'return'];
 const QUESTIONS: Screen[] = ['q1', 'q2', 'q3', 'q4', 'q5'];
+
+/** 入力の途中を、打つたびに自動で保存する（戻るスワイプなどで画面が切り替わっても消えない） */
+function usePersistedText(key: string): [string, (v: string) => void, () => void] {
+  const [v, setV] = useState('');
+  useEffect(() => {
+    setV(loadInput(key)); // 描いたあとに読む（サーバーで作った画面と食い違わないように）
+  }, [key]);
+  const set = (x: string) => {
+    setV(x);
+    saveInput(key, x);
+  };
+  const clear = () => {
+    setV('');
+    clearInput(key);
+  };
+  return [v, set, clear];
+}
+
+/** 入力の途中の画面。ここで戻るスワイプをされても、画面を動かさない */
+const INPUT_SCREENS: Screen[] = ['welcome', 'q2', 'q3', 'return'];
 
 /** 名前が無い・相談の途中データが無いのにその画面へ来たら、入れる画面へ直す */
 function validScreen(s: Saved, want: string): Screen {
@@ -63,6 +86,9 @@ function spendTicket(p: Saved): Saved {
 
 export default function BatonApp() {
   const [s, setS] = useState<Saved | null>(null);
+  // Next.js が履歴の状態に入れている内部の印（__NA など）。これを消すと、戻るスワイプのたびにページが丸ごと読み込み直されて、
+  // 入力が消える。画面の履歴を書くときは、必ずこの印を引き継ぐ。
+  const nextState = useRef<Record<string, unknown>>({});
   const [fixing, setFixing] = useState(false);
   const [flash, setFlash] = useState('');
 
@@ -71,7 +97,10 @@ export default function BatonApp() {
     const loaded = loadSaved();
     const screen = validScreen(loaded, loaded.screen);
     setS({ ...loaded, screen });
-    window.history.replaceState({ screen }, '');
+    const cur = (window.history.state ?? {}) as Record<string, unknown>;
+    nextState.current = Object.fromEntries(Object.entries(cur).filter(([k]) => k.startsWith('__')));
+    window.history.replaceState({ ...nextState.current, base: true }, ''); // いちばん下の「土台」。ここまで戻ったら、画面を動かさず積み直す
+    window.history.pushState({ ...nextState.current, screen }, '');
   }, []);
 
   // 変わるたびに保存
@@ -79,11 +108,31 @@ export default function BatonApp() {
     if (s) saveSaved(s);
   }, [s]);
 
-  // ブラウザ・スマホの「戻る」でも前の画面へ
+  // いま出ている画面（戻るスワイプの処理が、最新の画面を知るため）
+  const screenRef = useRef<Screen>('welcome');
+  useEffect(() => {
+    if (s) screenRef.current = s.screen as Screen;
+  }, [s]);
+
+  // 戻るスワイプのお知らせ（数秒で消える）
+  const [toast, setToast] = useState('');
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(''), 3500);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
+  // ブラウザ・スマホの「戻る」：入力の途中の画面や、いちばん最初の画面では、画面を動かさない（打った内容を守る）
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
-      const want = (e.state as { screen?: string } | null)?.screen;
-      if (typeof want === 'string') setS((p) => (p ? { ...p, screen: validScreen(p, want) } : p));
+      const st = e.state as { screen?: string; base?: boolean } | null;
+      const cur = screenRef.current;
+      if (!st?.screen || INPUT_SCREENS.includes(cur)) {
+        window.history.pushState({ ...nextState.current, screen: cur }, ''); // 積み直して、いまの画面にとどまる
+        setToast('戻るときは、画面の「もどる」ボタンを押してのう。書いた内容は消えんぞ。');
+        return;
+      }
+      setS((p) => (p ? { ...p, screen: validScreen(p, st.screen as string) } : p));
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -102,7 +151,7 @@ export default function BatonApp() {
 
   const go = (sc: Screen, f?: (p: Saved) => Saved) => {
     setS((p) => (p ? { ...(f ? f(p) : p), screen: sc } : p));
-    window.history.pushState({ screen: sc }, '');
+    window.history.pushState({ ...nextState.current, screen: sc }, '');
   };
   const update = (f: (p: Saved) => Saved) => setS((p) => (p ? f(p) : p));
   const setDraft = (f: (d: Draft) => Draft) => update((p) => (p.draft ? { ...p, draft: f(p.draft) } : p));
@@ -154,7 +203,7 @@ export default function BatonApp() {
     setFixing(false);
     setFlash('');
     setS({ ...initialSaved(), screen: 'welcome' });
-    window.history.replaceState({ screen: 'welcome' }, '');
+    window.history.replaceState({ ...nextState.current, screen: 'welcome' }, '');
   };
 
   let body: ReactNode = null;
@@ -313,6 +362,11 @@ export default function BatonApp() {
       <main className="main" data-screen={screen}>
         {body}
       </main>
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
+      )}
       <footer className="demo">
         <span className="demo-label">展示用</span>
         <button type="button" className="btn-small" onClick={startSample}>見本の相談者で試す</button>
@@ -347,7 +401,7 @@ function Bottle({ rounds }: { rounds: Rounds }) {
 
 /* ① はじめて */
 function Welcome({ onDone }: { onDone: (name: string) => void }) {
-  const [nm, setNm] = useState('');
+  const [nm, setNm, clearNm] = usePersistedText('name');
   const [step, setStep] = useState<1 | 2>(1);
   const trimmed = nm.trim();
   if (step === 2) {
@@ -357,7 +411,10 @@ function Welcome({ onDone }: { onDone: (name: string) => void }) {
           {trimmed}さん、よろしくのう。<br />
           今月の相談チケットは<b>{TICKETS_PER_MONTH}枚</b>じゃ。週に1回、気軽においで。
         </Hakase>
-        <button type="button" className="btn-big" onClick={() => onDone(trimmed)}>博士の書斎に入る</button>
+        <button type="button" className="btn-big" onClick={() => {
+          clearNm();
+          onDone(trimmed);
+        }}>博士の書斎に入る</button>
         <button type="button" className="btn-link" onClick={() => setStep(1)}>名前を直す</button>
       </section>
     );
@@ -694,6 +751,21 @@ function Depart(props: {
 }) {
   const { draft, left } = props;
   const [msg, setMsg] = useState<{ ai: string; copied: boolean } | null>(null);
+  // 「相談から帰ってきた」ボタンは、AIを開いたあと、実際にこの画面へ戻ってきたときだけ出す。
+  // （前にAIを開いていて、ページが読み込み直されて戻ったときも出す）
+  const [returned, setReturned] = useState(!!draft.ai);
+  const openedAt = useRef(0);
+  useEffect(() => {
+    const back = () => {
+      if (openedAt.current && document.visibilityState === 'visible' && Date.now() - openedAt.current > 3000) setReturned(true);
+    };
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => {
+      document.removeEventListener('visibilitychange', back);
+      window.removeEventListener('focus', back);
+    };
+  }, []);
 
   let ticketMsg: string;
   if (draft.ticketUsed) ticketMsg = 'この相談のチケットはもう使ったぞ。別のAIを開き直しても、チケットは減らん。';
@@ -704,6 +776,7 @@ function Depart(props: {
   const open = async (id: string, url: string, label: string) => {
     // 先にコピー（その場で写す）→ 待たずに別タブを開く（待つとポップアップとして止められることがある）→ チケットを使う
     const copying = copyText(draft.letter);
+    openedAt.current = Date.now();
     window.open(url, '_blank', 'noopener');
     props.onOpen(id);
     setMsg({ ai: label, copied: await copying });
@@ -713,7 +786,7 @@ function Depart(props: {
     <section>
       <Hakase>水筒を持って相談しておいで。</Hakase>
       <p className="ticket-msg" data-testid="ticket-msg">{ticketMsg}</p>
-      <p className="hint">ふだんよく使うAIがあれば、それがおすすめじゃな。</p>
+      <p className="hint">ふだんよく使うAIがあれば、それがおすすめじゃな。AIに「記憶」の機能があれば、オンにしておくと、おぬしのことを覚えて答えてくれるぞ。</p>
       <div className="choices">
         {AI_SERVICES.map((ai) => (
           <button key={ai.id} type="button" className="btn-big btn-ai" onClick={() => open(ai.id, ai.url, ai.label)}>
@@ -756,7 +829,11 @@ function Depart(props: {
         </div>
         <p className="hint">AIのアプリやサイトは、おぬし自身のアカウントで使うんじゃよ。</p>
       </div>
-      <button type="button" className="btn-big btn-accent" onClick={props.onReturn}>相談から帰ってきた</button>
+      {returned ? (
+        <button type="button" className="btn-big btn-accent" onClick={props.onReturn}>相談から帰ってきた</button>
+      ) : (
+        msg && <p className="hint">AIでの相談が終わったら、このタブへ戻ってくるんじゃ。戻ると、ここに「相談から帰ってきた」ボタンが出るぞ。</p>
+      )}
       <button type="button" className="btn-link" onClick={props.onBack}>もどる（紹介状へ）</button>
     </section>
   );
@@ -764,8 +841,8 @@ function Depart(props: {
 
 /* ⑦ 持ち帰り */
 function Return({ onSave, onBack }: { onSave: (summary: string, next: string) => void; onBack: () => void }) {
-  const [summary, setSummary] = useState('');
-  const [next, setNext] = useState('');
+  const [summary, setSummary, clearSummary] = usePersistedText('summary');
+  const [next, setNext, clearNext] = usePersistedText('next');
   const [pasteNg, setPasteNg] = useState(false);
   return (
     <section>
@@ -788,7 +865,11 @@ function Return({ onSave, onBack }: { onSave: (summary: string, next: string) =>
       {pasteNg && <p className="ng-text">うまく貼れんかった。欄を長押し（右クリック）して「貼り付け」しておくれ。</p>}
       <label className="field-label" htmlFor="nx">次にやること（書かなくてもよいぞ）</label>
       <textarea id="nx" className="input area" rows={3} value={next} onChange={(e) => setNext(e.target.value)} placeholder="例：明日、表の合計を関数でやってみる" />
-      <button type="button" className="btn-big" disabled={!summary.trim()} onClick={() => onSave(summary.trim(), next.trim())}>
+      <button type="button" className="btn-big" disabled={!summary.trim()} onClick={() => {
+          clearSummary();
+          clearNext();
+          onSave(summary.trim(), next.trim());
+        }}>
         ノートにしまう
       </button>
       <button type="button" className="btn-link" onClick={onBack}>もどる</button>

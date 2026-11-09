@@ -115,9 +115,32 @@ export function saveSaved(s: Saved) {
   }
 }
 
+const INPUT_PREFIX = 'ai-baton:input:';
+
+/** 入力の途中（名前・持ち帰りの貼り付けなど）の自動保存。戻るスワイプなどで画面が切り替わっても消えないように */
+export function loadInput(key: string): string {
+  try {
+    return window.localStorage.getItem(INPUT_PREFIX + key) ?? '';
+  } catch {
+    return '';
+  }
+}
+export function saveInput(key: string, value: string) {
+  try {
+    if (value) window.localStorage.setItem(INPUT_PREFIX + key, value);
+    else window.localStorage.removeItem(INPUT_PREFIX + key);
+  } catch {
+    /* 保存できなくても、画面では使える */
+  }
+}
+export const clearInput = (key: string) => saveInput(key, '');
+
 export function clearSaved() {
   try {
     window.localStorage.removeItem(KEY);
+    for (const k of Object.keys(window.localStorage)) {
+      if (k.startsWith(INPUT_PREFIX)) window.localStorage.removeItem(k);
+    }
   } catch {
     /* 何もしない */
   }
