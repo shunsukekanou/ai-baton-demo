@@ -50,6 +50,8 @@ export type Saved = {
   draft: Draft | null;
   /** 最後にいた画面 */
   screen: string;
+  /** 最後に使った時刻（ミリ秒）。時間がたってから開いたときは、つづきからではなく書斎から始めるため */
+  savedAt?: number;
 };
 
 export const emptyAnswers = (): Answers => ({ q2: '', q3: '' });
@@ -92,6 +94,7 @@ export function loadSaved(): Saved {
         notes: Array.isArray(p.notes) ? p.notes : [],
         draft: p.draft && typeof p.draft === 'object' ? { ...newDraft(), ...p.draft } : null,
         screen: typeof p.screen === 'string' ? p.screen : 'welcome',
+        savedAt: typeof p.savedAt === 'number' ? p.savedAt : undefined,
       };
     }
   } catch {
@@ -109,7 +112,7 @@ export function refreshMonth(s: Saved): Saved {
 
 export function saveSaved(s: Saved) {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(s));
+    window.localStorage.setItem(KEY, JSON.stringify({ ...s, savedAt: Date.now() }));
   } catch {
     // 保存できない（プライベートモードなど）ときも画面は動かす
   }

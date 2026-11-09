@@ -46,6 +46,11 @@ const SCREENS: Screen[] = ['welcome', 'study', 'chat', 'q1', 'q2', 'q3', 'q4', '
 const NEEDS_DRAFT: Screen[] = ['q1', 'q2', 'q3', 'q4', 'q5', 'confirm', 'letter', 'depart', 'return'];
 const QUESTIONS: Screen[] = ['q1', 'q2', 'q3', 'q4', 'q5'];
 
+/** これより長く開いていなかったら、前の画面のつづきからではなく、書斎から始める（AIに相談して戻ってくる間は、つづきから） */
+const RESUME_MS = 6 * 60 * 60 * 1000;
+/** つづきからにしない画面（最初から開いてよい画面） */
+const HOME_SCREENS: Screen[] = ['welcome', 'study', 'chat', 'notes'];
+
 /** 入力の途中を、打つたびに自動で保存する（戻るスワイプなどで画面が切り替わっても消えない） */
 function usePersistedText(key: string): [string, (v: string) => void, () => void] {
   const [v, setV] = useState('');
@@ -96,7 +101,10 @@ export default function BatonApp() {
   // 起動時：LocalStorage から読み込む（サーバーでの下書き表示と食い違わないよう、読み込み後に描く）
   useEffect(() => {
     const loaded = loadSaved();
-    const screen = validScreen(loaded, loaded.screen);
+    const stale = !loaded.savedAt || Date.now() - loaded.savedAt > RESUME_MS;
+    let screen = validScreen(loaded, loaded.screen);
+    if (stale && !HOME_SCREENS.includes(screen)) screen = validScreen(loaded, 'study'); // 時間がたっている：書斎から
+    else if (!HOME_SCREENS.includes(screen)) setToast('前のつづきから開いたぞ。最初からやるなら、「もどる」で書斎へ戻るんじゃ。');
     setS({ ...loaded, screen });
     const cur = (window.history.state ?? {}) as Record<string, unknown>;
     nextState.current = Object.fromEntries(Object.entries(cur).filter(([k]) => k.startsWith('__')));
