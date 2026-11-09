@@ -1,7 +1,7 @@
 {
   "name": "ai-baton-demo",
   "version": "1.0.0",
-  "description": "AI-Baton（老博士の紹介状）",
+  "description": "AI-Baton（バトン博士の紹介状）",
   "scripts": {
     "dev": "next dev",
     "build": "next build"

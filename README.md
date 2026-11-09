@@ -1,6 +1,6 @@
 # AI-Baton（デモ版）
 
-老博士が話を聞いて「紹介状（専門家の配役つきプロンプト）」を書き、本人の AI（Claude・Gemini・ChatGPT）へ渡すアプリ。
+バトン博士が話を聞いて「紹介状（専門家の配役つきプロンプト）」を書き、本人の AI（Claude・Gemini・ChatGPT）へ渡すアプリ。
 サーバー・DB・AI の API は使わない。記録はブラウザの中（LocalStorage、キー `ai-baton:v1`）だけ。
 
 ## 画面の開き方
