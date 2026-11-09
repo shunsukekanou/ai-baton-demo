@@ -25,7 +25,7 @@ export type Field = {
 export const FIELDS: Field[] = [
   {
     id: 'dandori',
-    label: '仕事の段取り',
+    label: '仕事のこと',
     role: '仕事の段取り・業務改善にくわしい先生',
     q2Examples: ['やることが多くて、何から手をつければいいかわからない', '毎週同じ作業に時間がかかっている'],
     q3Examples: ['毎日の段取りがすっきり決まる', '作業時間を半分にしたい'],

@@ -221,10 +221,8 @@ export default function BatonApp() {
         <Letter
           draft={draft}
           onRounds={(r) => {
-            if (draft.letterEdited && !window.confirm('水筒を変えると、手で直した紹介状は書き直しになるぞ。よいかの？')) return;
             setDraft((d) => ({ ...d, rounds: r, letter: buildLetter(name, d.answers, r), letterEdited: false }));
           }}
-          onEdit={(text) => setDraft((d) => ({ ...d, letter: text, letterEdited: true }))}
           onNext={() => go('depart')}
           onBack={() => go('confirm')}
         />
@@ -331,7 +329,7 @@ function Hakase({ children }: { children: ReactNode }) {
     <div className="hakase">
       {/* 博士の絵は data.ts の HAKASE_IMAGE で差し替える */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="hakase-img" src={HAKASE_IMAGE} alt="老博士" width={96} height={96} />
+      <img className="hakase-img" src={HAKASE_IMAGE} alt="バトン博士" width={96} height={96} />
       <div className="bubble">{children}</div>
     </div>
   );
@@ -366,7 +364,7 @@ function Welcome({ onDone }: { onDone: (name: string) => void }) {
   }
   return (
     <section>
-      <Hakase>やあやあ、よくきたのう。わしは老博士じゃ。おぬしの名前を教えてくれんか。</Hakase>
+      <Hakase>やあやあ、よくきたのう。わしはバトン博士じゃ。おぬしの名前を教えてくれんか。</Hakase>
       <label className="field-label" htmlFor="nm">呼び名（ニックネームでもよいぞ）</label>
       <input
         id="nm"
@@ -402,7 +400,7 @@ function Study(props: {
         {left > 0 ? (
           <>{name}さん、よくきたのう。今日はどうしたんじゃ？</>
         ) : (
-          <>今月の水筒はもう空っぽじゃ。じゃが、おぬし自身のAIで続けることはできるぞ。</>
+          <>今月のチケットはもう使い切ったぞ。じゃが、おぬし自身のAIで続けることはできるぞ。</>
         )}
       </Hakase>
       <div className="tickets" aria-label={`今月の相談チケット 残り${left}枚`}>
@@ -449,7 +447,7 @@ function Chat({ onTrouble, onHome }: { onTrouble: () => void; onHome: () => void
     <section>
       <div className="chat-head">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="hakase-img small" src={HAKASE_IMAGE} alt="老博士" width={56} height={56} />
+        <img className="hakase-img small" src={HAKASE_IMAGE} alt="バトン博士" width={56} height={56} />
         <span>世間話（{round + 1}／{SMALL_TALK.length}）チケットは使わんぞ</span>
       </div>
       <div className="chat-log">
@@ -651,55 +649,35 @@ function Confirm(props: {
   );
 }
 
-/* ⑤ 紹介状 */
+/* ⑤ 紹介状（中身は見せない。出発の画面で AI のボタンを押すと、自動でコピーされる） */
 function Letter(props: {
   draft: Draft;
   onRounds: (r: Rounds) => void;
-  onEdit: (text: string) => void;
   onNext: () => void;
   onBack: () => void;
 }) {
   const { draft } = props;
-  const [editing, setEditing] = useState(false);
-  const [copied, setCopied] = useState<'' | 'ok' | 'ng'>('');
   const field = findField(draft.answers.fieldId);
   return (
     <section>
       <Hakase>
         よし、紹介状を書いたぞ。「{field?.role ?? '相談役'}」に話を聞いてもらうとよい。
-        水筒の大きさも選べるぞ。
+        水筒を持って行っておいで。
       </Hakase>
       <div className="rounds">
         <Bottle rounds={draft.rounds} />
-        <span className="rounds-label">水筒（相談の往復数）</span>
+        <span className="rounds-label">水筒の大きさ</span>
         {ROUND_CHOICES.map((r) => (
           <button key={r} type="button" className={draft.rounds === r ? 'btn-choice picked' : 'btn-choice'} onClick={() => props.onRounds(r)}>
-            {r}往復
+            {r <= 5 ? '小' : '大'}（{r}回）
           </button>
         ))}
       </div>
-      <div className="letter-paper">
-        {editing ? (
-          <textarea className="letter-edit" value={draft.letter} rows={18} onChange={(e) => props.onEdit(e.target.value)} />
-        ) : (
-          <pre className="letter-text" data-testid="letter">{draft.letter}</pre>
-        )}
-      </div>
-      <p className="hint">※ 名前や住所、会社の秘密などは書き足さないようにのう。</p>
-      <div className="row-buttons">
-        <button type="button" className="btn-small" onClick={() => setEditing((v) => !v)}>
-          {editing ? '直し終わった' : '文章を直す'}
-        </button>
-        <button
-          type="button"
-          className="btn-small"
-          onClick={async () => setCopied((await copyText(draft.letter)) ? 'ok' : 'ng')}
-        >
-          コピー
-        </button>
-      </div>
-      {copied === 'ok' && <p className="ok-text" role="status">コピーしたぞ！</p>}
-      {copied === 'ng' && <p className="ng-text" role="status">うまくコピーできんかった。文章を長押し（または選んで）コピーしておくれ。</p>}
+      <p className="hint">
+        水筒とは、相談する先生（AI）と<b>つづけて話せる回数</b>のことじゃ。おぬしが1回話して、先生が1回答えたら「1回」と数える。
+        小さい水筒は5回、大きい水筒は10回まで。ちょっと聞きたいだけなら小、じっくり相談したいなら大がよいぞ。
+      </p>
+      <p className="hint">※ 紹介状は、このあと開くおぬし自身のAIに貼り付けて送るぞ。名前や住所、会社の秘密は、相談に入れんようにのう。</p>
       <button type="button" className="btn-big" onClick={props.onNext}>この紹介状を持って出発する</button>
       <button type="button" className="btn-link" onClick={props.onBack}>もどる</button>
     </section>
@@ -733,8 +711,9 @@ function Depart(props: {
 
   return (
     <section>
-      <Hakase>水筒を持って相談しておいで。開いた画面に“貼り付け”て送るだけじゃ。</Hakase>
+      <Hakase>水筒を持って相談しておいで。</Hakase>
       <p className="ticket-msg" data-testid="ticket-msg">{ticketMsg}</p>
+      <p className="hint">ふだんよく使うAIがあれば、それがおすすめじゃな。</p>
       <div className="choices">
         {AI_SERVICES.map((ai) => (
           <button key={ai.id} type="button" className="btn-big btn-ai" onClick={() => open(ai.id, ai.url, ai.label)}>
@@ -746,11 +725,17 @@ function Depart(props: {
         <p className={msg.copied ? 'ok-text' : 'ng-text'} role="status">
           {msg.copied
             ? `紹介状をコピーして、${msg.ai}を別のタブで開いたぞ。開かなかったら、ブラウザのポップアップの設定を見ておくれ。`
-            : `${msg.ai}を開いたが、コピーがうまくいかんかった。前の画面の「コピー」を押してから貼り付けておくれ。`}
+            : `${msg.ai}を開いたが、コピーがうまくいかんかった。下の紹介状を長押し（または選んで）コピーしてから、貼り付けておくれ。`}
         </p>
+      )}
+      {msg && !msg.copied && (
+        <div className="letter-paper">
+          <pre className="letter-text" data-testid="letter">{draft.letter}</pre>
+        </div>
       )}
       <div className="howto">
         <h3>貼り付け方</h3>
+        <p className="hint">AIのボタンを押すと、紹介状は自動でコピーされるぞ。開いた画面に“貼り付け”て送るだけじゃ。</p>
         <div className="howto-grid">
           <div className="howto-card">
             <b>パソコン</b>

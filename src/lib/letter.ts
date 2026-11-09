@@ -10,7 +10,7 @@ export function buildLetter(name: string, a: Answers, rounds: Rounds): string {
   const who = name ? `${name}さん` : '相談者';
 
   return [
-    '【老博士からの紹介状】',
+    '【バトン博士からの紹介状】',
     '',
     `あなたは「${role}」です。`,
     `これから${who}の相談に乗ってください。`,
