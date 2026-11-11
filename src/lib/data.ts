@@ -102,43 +102,38 @@ export const AIZUCHI: Record<string, string> = {
   q5: 'よしよし、あと少しじゃ。答えの好みと、AIの経験を教えておくれ。',
 };
 
-// 指示書 #1：世間話（5往復）
-export type TalkChoice = { label: string; action: 'next' | 'trouble' | 'home' };
-export const TROUBLE_LABEL = '実はちょっと困ったことが…';
-export const SMALL_TALK: { hakase: string; choices: TalkChoice[] }[] = [
+// 指示書 #7：世間話＝「こころの天気」→「気になっている分野」→「そういえば…」→ 相談へ（固定の文。AIのAPIは使わない）
+export const TALK_WEATHER = {
+  hakase: '最近の調子はどうじゃ？ 今の気分を、天気で例えるとどんな感じかのう？',
+  choices: ['☀️ すっきり晴れやか', '⛅ まあまあ、悪くない', '☁️ ちょっともやもや・曇り空', '🌧️ 雨ふり、心が疲れている'],
+};
+export const TALK_AREA_ASK = 'そうかそうか。最近、頭のすみでよく考えていることはあるかの？';
+export const TALK_NONE_AREA = 'とくに何もない（のんびりしたい）';
+export const TALK_NONE_CANDIDATE = 'とくにない（話したかっただけだよ）';
+export const TALK_REST = 'そうかそうか。無理に探す必要はないぞ。お茶でも飲んでゆっくり休んでおくれ。';
+export const TALK_ACCEPT = 'そうかそうか。言葉にしてみると、心に引っかかっていたものが見えてくるもんじゃな。これについて、相談役の先生に話を聞いてもらうかの？';
+export const TALK_SAFETY = '※つらさが強いときや専門的なケアが必要なときは、よりそいホットライン（0120-279-338）などの公的な相談窓口もご利用ください。';
+/** 気になっている分野（fieldId は相談の分野への引き継ぎ先） */
+export const TALK_AREAS: { label: string; fieldId: string; candidates: string[] }[] = [
   {
-    hakase: 'いつもお疲れさまじゃ。最近の調子はどうじゃ？',
-    choices: [
-      { label: 'まあまあ順調', action: 'next' },
-      { label: 'バタバタ忙しかった', action: 'next' },
-      { label: 'ちょっと疲れた', action: 'next' },
-    ],
+    label: '仕事のこと', fieldId: 'dandori',
+    candidates: ['頼まれた仕事を断れなくて抱え込んでいる', '段取りがうまくいかなくて焦っている', 'ミスをするのが怖くて手が進まない'],
   },
   {
-    hakase: 'そうかそうか。ちゃんと息抜きはできておるかの？',
-    choices: [
-      { label: '休めてるよ', action: 'next' },
-      { label: 'あんまり休めてない', action: 'next' },
-      { label: '好きなことして過ごしてる', action: 'next' },
-    ],
+    label: '体や睡眠のこと', fieldId: 'sonota',
+    candidates: ['寝ても疲れが取れなくて体が重い', '夜になると色々考えて眠れない', 'ちゃんと休む時間が取れていない'],
   },
   {
-    hakase: '無理は禁物じゃぞ。温かいお茶でも飲んで一息つくのが一番じゃ。',
-    choices: [
-      { label: 'ありがとう', action: 'next' },
-      { label: '博士も気をつけてね', action: 'next' },
-    ],
+    label: '人間関係のこと', fieldId: 'kimochi',
+    candidates: ['相手の顔色ばかり気にして疲れる', '自分の気持ちをうまく伝えられない', '特定の人とのやり取りが重荷になっている'],
   },
   {
-    hakase: 'おぬしのそういう優しいところ、わしは好きじゃよ。何か気になることはあるかの？',
-    choices: [
-      { label: 'のんびり話したいだけだよ', action: 'next' },
-      { label: TROUBLE_LABEL, action: 'trouble' },
-    ],
+    label: '暮らし・お金のこと', fieldId: 'kurashi',
+    candidates: ['将来のお金や生活の不安がふとよぎる', '部屋の片付けや家事に手が回らない', '毎日が慌ただしくて余裕がない'],
   },
   {
-    hakase: '話せて楽しかったぞ。またいつでも来るんじゃぞ！',
-    choices: [{ label: 'また来るね（書斎へ戻る）', action: 'home' }],
+    label: '自分の時間のこと', fieldId: 'sonota',
+    candidates: ['自分のための時間がまったく取れていない', 'やりたいことがあるのに気力が湧かない', 'ぼーっとスマホを見て一日が終わってしまう'],
   },
 ];
 

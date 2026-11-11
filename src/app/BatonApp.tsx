@@ -10,10 +10,16 @@ import {
   PREF_CHOICES,
   ROUND_CHOICES,
   SAMPLE,
-  SMALL_TALK,
   STUCK_CHOICES,
   TICKETS_PER_MONTH,
-  TROUBLE_LABEL,
+  TALK_ACCEPT,
+  TALK_AREA_ASK,
+  TALK_AREAS,
+  TALK_NONE_AREA,
+  TALK_NONE_CANDIDATE,
+  TALK_REST,
+  TALK_SAFETY,
+  TALK_WEATHER,
   findField,
   type Rounds,
 } from '@/lib/data';
@@ -23,6 +29,7 @@ import { browserTarget, externalUrl, isInAppBrowser } from '@/lib/inapp';
 import {
   clearInput,
   clearSaved,
+  emptyAnswers,
   initialSaved,
   loadInput,
   loadSaved,
@@ -228,6 +235,15 @@ export default function BatonApp() {
     go(i > 0 ? QUESTIONS[i - 1] : 'study');
   };
 
+  /** 世間話から相談へ。選んだ分野と困りごとを入れた状態で、Q2（くわしく聞くところ）から始める */
+  const startFromTalk = (fieldId: string, text: string) => {
+    setFixing(false);
+    go('q2', (p) => ({
+      ...p,
+      draft: { ...newDraft(ticketsLeft(refreshMonth(p)) === 0), answers: { ...emptyAnswers(), fieldId, q2: text } },
+    }));
+  };
+
   const startSample = () => {
     setFixing(false);
     go('letter', (p) => {
@@ -272,7 +288,7 @@ export default function BatonApp() {
       );
       break;
     case 'chat':
-      body = <Chat onTrouble={startConsult} onHome={() => go('study')} />;
+      body = <Chat onConsult={startFromTalk} onHome={() => go('study')} />;
       break;
     case 'q1':
     case 'q2':
@@ -663,47 +679,86 @@ function Study(props: {
 }
 
 /* ③A 世間話 */
-function Chat({ onTrouble, onHome }: { onTrouble: () => void; onHome: () => void }) {
-  const [round, setRound] = useState(0);
-  const [log, setLog] = useState<{ who: 'h' | 'me'; text: string }[]>([{ who: 'h', text: SMALL_TALK[0].hakase }]);
-  const cur = SMALL_TALK[round];
-  const choices = cur.choices.some((c) => c.action === 'trouble')
-    ? cur.choices
-    : [...cur.choices, { label: TROUBLE_LABEL, action: 'trouble' as const }];
+function Chat({ onConsult, onHome }: { onConsult: (fieldId: string, text: string) => void; onHome: () => void }) {
+  type Step = 'weather' | 'area' | 'candidate' | 'accept' | 'rest';
+  const [step, setStep] = useState<Step>('weather');
+  const [area, setArea] = useState<(typeof TALK_AREAS)[number] | null>(null);
+  const [concern, setConcern] = useState('');
+  const [log, setLog] = useState<{ who: 'h' | 'me'; text: string }[]>([{ who: 'h', text: TALK_WEATHER.hakase }]);
+  const say = (me: string, h: string) => setLog((l) => [...l, { who: 'me', text: me }, { who: 'h', text: h }]);
+  const stepNo = step === 'weather' ? 1 : step === 'area' ? 2 : 3;
+  // 選ぶたびに内容が下へ伸びるので、新しい博士の言葉と選択肢が見える位置まで、自動で下へ送る
+  useEffect(() => {
+    if (log.length <= 1) return;
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const id = window.setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: calm ? 'auto' : 'smooth' }), 80);
+    return () => window.clearTimeout(id);
+  }, [log.length]);
 
-  const pick = (label: string, action: 'next' | 'trouble' | 'home') => {
-    if (action === 'trouble') return onTrouble();
-    if (action === 'home') return onHome();
-    const n = round + 1;
-    setLog((l) => [...l, { who: 'me', text: label }, { who: 'h', text: SMALL_TALK[n].hakase }]);
-    setRound(n);
-  };
+  let choices: ReactNode = null;
+  if (step === 'weather') {
+    choices = TALK_WEATHER.choices.map((c) => (
+      <button key={c} type="button" className="btn-choice" onClick={() => { say(c, TALK_AREA_ASK); setStep('area'); }}>{c}</button>
+    ));
+  } else if (step === 'area') {
+    choices = (
+      <>
+        {TALK_AREAS.map((a) => (
+          <button
+            key={a.label}
+            type="button"
+            className="btn-choice"
+            onClick={() => {
+              say(a.label, `ふむふむ。「${a.label}」で、「そういえば…」と思い当たることはあるかの？`);
+              setArea(a);
+              setStep('candidate');
+            }}
+          >
+            {a.label}
+          </button>
+        ))}
+        <button type="button" className="btn-choice" onClick={() => { say(TALK_NONE_AREA, TALK_REST); setStep('rest'); }}>{TALK_NONE_AREA}</button>
+      </>
+    );
+  } else if (step === 'candidate' && area) {
+    choices = (
+      <>
+        {area.candidates.map((c) => (
+          <button key={c} type="button" className="btn-choice" onClick={() => { say(c, TALK_ACCEPT); setConcern(c); setStep('accept'); }}>{c}</button>
+        ))}
+        <button type="button" className="btn-choice" onClick={() => { say(TALK_NONE_CANDIDATE, TALK_REST); setStep('rest'); }}>{TALK_NONE_CANDIDATE}</button>
+      </>
+    );
+  }
 
   return (
     <section>
       <div className="chat-head">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="hakase-img small" src={HAKASE_IMAGE} alt="バトン博士" width={56} height={56} />
-        <span>世間話（{round + 1}／{SMALL_TALK.length}）チケットは使わんぞ</span>
+        <span>
+          {step === 'accept' || step === 'rest' ? '世間話' : `世間話（${stepNo}／3）`} チケットは使わんぞ
+        </span>
       </div>
       <div className="chat-log">
         {log.map((m, i) => (
           <p key={i} className={m.who === 'h' ? 'msg msg-h' : 'msg msg-me'}>{m.text}</p>
         ))}
       </div>
-      <div className="choices">
-        {choices.map((c) => (
-          <button
-            key={c.label}
-            type="button"
-            className={c.action === 'trouble' ? 'btn-choice trouble' : 'btn-choice'}
-            onClick={() => pick(c.label, c.action)}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-      <button type="button" className="btn-link" onClick={onHome}>もどる（書斎へ）</button>
+      {choices && <div className="choices">{choices}</div>}
+      {step === 'accept' && area && (
+        <>
+          <button type="button" className="btn-big" data-testid="talk-consult" onClick={() => onConsult(area.fieldId, concern)}>この内容で相談してみる</button>
+          <button type="button" className="btn-link" onClick={onHome}>書斎へもどる</button>
+        </>
+      )}
+      {step === 'rest' && (
+        <button type="button" className="btn-big btn-soft" data-testid="talk-home" onClick={onHome}>書斎へもどる</button>
+      )}
+      {step !== 'accept' && step !== 'rest' && (
+        <button type="button" className="btn-link" onClick={onHome}>もどる（書斎へ）</button>
+      )}
+      <p className="hint" data-testid="talk-safety">{TALK_SAFETY}</p>
     </section>
   );
 }
