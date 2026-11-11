@@ -216,3 +216,6 @@ details summary { cursor: pointer; color: var(--main-dark); font-size: 15px; }
 .inapp a.btn-small { display: inline-block; text-decoration: none; text-align: center; }
 .inapp .row-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .inapp .btn-small { white-space: nowrap; }
+
+.paste-sign { padding-top: 22px; padding-bottom: 22px; font-size: 18px; line-height: 1.5; margin: 12px 0; }
+.btn-big.attn { outline: 3px solid var(--accent); outline-offset: 3px; }

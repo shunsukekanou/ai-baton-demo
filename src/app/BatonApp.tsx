@@ -843,9 +843,19 @@ function Depart(props: {
   // （前にAIを開いていて、ページが読み込み直されて戻ったときも出す）
   const [returned, setReturned] = useState(!!draft.ai);
   const openedAt = useRef(0);
+  const autoWent = useRef(false);
+  const onReturnRef = useRef(props.onReturn);
+  onReturnRef.current = props.onReturn;
   useEffect(() => {
     const back = () => {
-      if (openedAt.current && document.visibilityState === 'visible' && Date.now() - openedAt.current > 3000) setReturned(true);
+      if (openedAt.current && document.visibilityState === 'visible' && Date.now() - openedAt.current > 3000) {
+        setReturned(true);
+        // AIの画面から戻ってきたら、自動で持ち帰り画面（⑦）へ進む（一度だけ）
+        if (!autoWent.current) {
+          autoWent.current = true;
+          onReturnRef.current();
+        }
+      }
     };
     document.addEventListener('visibilitychange', back);
     window.addEventListener('focus', back);
@@ -865,6 +875,7 @@ function Depart(props: {
     // 先にコピー（その場で写す）→ 待たずに別タブを開く（待つとポップアップとして止められることがある）→ チケットを使う
     const copying = copyText(draft.letter);
     openedAt.current = Date.now();
+    autoWent.current = false;
     window.open(url, '_blank', 'noopener');
     props.onOpen(id);
     setMsg({ ai: label, copied: await copying });
@@ -918,9 +929,9 @@ function Depart(props: {
         <p className="hint">AIのアプリやサイトは、おぬし自身のアカウントで使うんじゃよ。</p>
       </div>
       {returned ? (
-        <button type="button" className="btn-big btn-accent" onClick={props.onReturn}>相談から帰ってきた</button>
+        <button type="button" className="btn-big btn-accent" onClick={props.onReturn}>相談から帰ってきた（持ち帰り画面へ）</button>
       ) : (
-        msg && <p className="hint">AIでの相談が終わったら、このタブへ戻ってくるんじゃ。戻ると、ここに「相談から帰ってきた」ボタンが出るぞ。</p>
+        msg && <p className="hint">AIでの相談が終わったら、このタブへ戻ってくるんじゃ。戻ると、自動で持ち帰りの画面に進むぞ。AIにログインしないで使うと、閉じたときに会話の履歴が消えることがある。最後の【持ち帰りメモ】を、忘れずにコピーして持ち帰るんじゃぞ。</p>
       )}
       <button type="button" className="btn-link" onClick={props.onBack}>もどる（紹介状へ）</button>
     </section>
@@ -932,35 +943,42 @@ function Return({ onSave, onSaveContinue, onBack }: { onSave: (summary: string, 
   const [summary, setSummary, clearSummary] = usePersistedText('summary');
   const [next, setNext, clearNext] = usePersistedText('next');
   const [pasteNg, setPasteNg] = useState(false);
+  const filled = !!summary.trim();
+  const pasteFromClipboard = async () => {
+    const t = await readText();
+    if (t && t.trim()) {
+      setSummary(t);
+      setPasteNg(false);
+    } else setPasteNg(true);
+  };
   return (
     <section>
-      <Hakase>おかえり。先生はなんと言っておった？ 最後の「持ち帰りメモ」を貼っておくれ。</Hakase>
+      <Hakase>
+        {filled
+          ? 'よしよし、しっかり受け取ったぞ！ あとは下の「ノートにしまう」ボタンを押せば、記録完了じゃ！'
+          : 'おかえり！ 先生（AI）との相談はどうじゃったかな？ 下の大きなボタンを押して、コピーしてきた「持ち帰りメモ」を貼り付けておくれ。'}
+      </Hakase>
+      {!filled && (
+        <button type="button" className="btn-big btn-accent paste-sign" data-testid="paste-sign" onClick={pasteFromClipboard}>
+          📋 ここをタップして、コピーした先生のメモを貼り付ける
+        </button>
+      )}
       <label className="field-label" htmlFor="sum">先生の話のまとめ（持ち帰りメモ）</label>
       <textarea id="sum" className="input area" rows={7} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="AIの最後の返事を貼り付ける" />
-      <button
-        type="button"
-        className="btn-small"
-        onClick={async () => {
-          const t = await readText();
-          if (t) {
-            setSummary(t);
-            setPasteNg(false);
-          } else setPasteNg(true);
-        }}
-      >
+      <button type="button" className="btn-small" onClick={pasteFromClipboard}>
         コピーしたものを貼る
       </button>
-      {pasteNg && <p className="ng-text">うまく貼れんかった。欄を長押し（右クリック）して「貼り付け」しておくれ。</p>}
+      {pasteNg && <p className="ng-text">うまく自動で貼れんかった。下の欄を長押し（または右クリック）して「貼り付け（ペースト）」を押しておくれ。</p>}
       <label className="field-label" htmlFor="nx">次にやること（書かなくてもよいぞ）</label>
       <textarea id="nx" className="input area" rows={3} value={next} onChange={(e) => setNext(e.target.value)} placeholder="例：明日、表の合計を関数でやってみる" />
-      <button type="button" className="btn-big" disabled={!summary.trim()} onClick={() => {
+      <button type="button" className={`btn-big${filled ? ' attn' : ''}`} disabled={!filled} onClick={() => {
           clearSummary();
           clearNext();
           onSave(summary.trim(), next.trim());
         }}>
         ノートにしまう
       </button>
-      <button type="button" className="btn-big btn-soft" disabled={!summary.trim()} onClick={() => {
+      <button type="button" className={`btn-big btn-soft${filled ? ' attn' : ''}`} disabled={!filled} onClick={() => {
           const sm = summary.trim();
           const nx = next.trim();
           clearSummary();
@@ -969,7 +987,7 @@ function Return({ onSave, onSaveContinue, onBack }: { onSave: (summary: string, 
         }}>
         ノートにしまって、新しい水筒でつづける
       </button>
-      <button type="button" className="btn-link" onClick={onBack}>もどる</button>
+      <button type="button" className="btn-link" onClick={onBack}>もどる（もう一度AIを開く・出発画面へ）</button>
     </section>
   );
 }
