@@ -107,7 +107,7 @@ export type TalkChoice = { label: string; action: 'next' | 'trouble' | 'home' };
 export const TROUBLE_LABEL = '実はちょっと困ったことが…';
 export const SMALL_TALK: { hakase: string; choices: TalkChoice[] }[] = [
   {
-    hakase: '今日もお疲れさまじゃ。今日はどんな1日じゃったかのう？',
+    hakase: 'いつもお疲れさまじゃ。最近の調子はどうじゃ？',
     choices: [
       { label: 'まあまあ順調', action: 'next' },
       { label: 'バタバタ忙しかった', action: 'next' },
@@ -115,7 +115,7 @@ export const SMALL_TALK: { hakase: string; choices: TalkChoice[] }[] = [
     ],
   },
   {
-    hakase: 'そうかそうか。最近はしっかり息抜きできておるかの？',
+    hakase: 'そうかそうか。ちゃんと息抜きはできておるかの？',
     choices: [
       { label: '休めてるよ', action: 'next' },
       { label: 'あんまり休めてない', action: 'next' },
@@ -137,7 +137,7 @@ export const SMALL_TALK: { hakase: string; choices: TalkChoice[] }[] = [
     ],
   },
   {
-    hakase: '今日話せて楽しかったぞ。またいつでも来るんじゃぞ！',
+    hakase: '話せて楽しかったぞ。またいつでも来るんじゃぞ！',
     choices: [{ label: 'また来るね（書斎へ戻る）', action: 'home' }],
   },
 ];
