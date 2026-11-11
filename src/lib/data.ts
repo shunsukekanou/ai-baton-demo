@@ -132,7 +132,7 @@ export const SMALL_TALK: { hakase: string; choices: TalkChoice[] }[] = [
   {
     hakase: 'おぬしのそういう優しいところ、わしは好きじゃよ。何か気になることはあるかの？',
     choices: [
-      { label: 'のんびり話したいだけじゃよ', action: 'next' },
+      { label: 'のんびり話したいだけだよ', action: 'next' },
       { label: TROUBLE_LABEL, action: 'trouble' },
     ],
   },

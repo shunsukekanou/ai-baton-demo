@@ -1,4 +1,4 @@
 :HL["/ai-baton-demo/_next/static/chunks/3on8ksz4jfned.css","style"]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"/_not-found","h":96,"c":"$Q2"}]]
-0:{"b":"BKi44JRX-AgEoMyuKYA8l","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"F_ujBP0UzEkqo4YaFMBGP","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
