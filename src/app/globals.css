@@ -323,3 +323,10 @@ body:has(.page.room) { background: #FBF6EC; }
 .room .toast { background: #3B3530; border-radius: 18px; }
 .room .ng-text { color: #A5432F; }
 /* ==== 全画面への広げ ここまで ==== */
+
+/* ==== チケットの半分刻み（指示 #8）==== */
+.choice-sub { display: block; font-size: 13px; font-weight: 400; color: var(--ink-soft); line-height: 1.4; }
+.btn-choice:disabled { opacity: .5; cursor: default; box-shadow: none; }
+.ticket.half { background: linear-gradient(to right, #f2c66d 50%, transparent 50%); border-style: solid; }
+.room .ticket.half { background: linear-gradient(to right, #F5D9A6 50%, transparent 50%); border-style: solid; border-color: #C9A56B; }
+/* ==== チケットの半分刻み ここまで ==== */

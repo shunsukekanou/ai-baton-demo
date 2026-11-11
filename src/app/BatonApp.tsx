@@ -37,6 +37,8 @@ import {
   refreshMonth,
   saveInput,
   saveSaved,
+  ticketCost,
+  fmtTickets,
   ticketsLeft,
   today,
   type Answers,
@@ -90,25 +92,31 @@ function validScreen(s: Saved, want: string): Screen {
   return sc;
 }
 
-/** チケットを1枚使う（同じ相談では1回だけ。0枚なら自分のAIへのバトンにする） */
+/** チケットを使う（小の水筒＝0.5枚、大＝1枚。同じ相談では1回だけ。0枚なら自分のAIへのバトンにする） */
 function spendTicket(p: Saved): Saved {
   const s = refreshMonth(p);
   if (!s.draft || s.draft.ticketUsed || s.draft.baton) return s;
-  if (ticketsLeft(s) > 0) {
-    return { ...s, ticketsUsed: s.ticketsUsed + 1, draft: { ...s.draft, ticketUsed: true } };
+  const left = ticketsLeft(s);
+  if (left > 0) {
+    // 足りないのに大を選べない作りだが、念のため、残りより多くは引かない
+    const cost = Math.min(ticketCost(s.draft.rounds), left);
+    return { ...s, ticketsUsed: s.ticketsUsed + cost, draft: { ...s.draft, ticketUsed: true } };
   }
   return { ...s, draft: { ...s.draft, baton: true } };
 }
 
 /** ノートの持ち帰りメモを引き継いだ、新しい相談（新しい水筒）の下書きを作る */
 function continueFrom(q: Saved, n: Note): Saved {
+  // 残りが0.5枚しか無いのに、前回が大（1枚）だったときは、小（0.5枚）にする
+  const left = ticketsLeft(q);
+  const rounds: Rounds = left > 0 && left < ticketCost(n.rounds) ? 5 : n.rounds;
   return {
     ...q,
     draft: {
-      ...newDraft(ticketsLeft(q) === 0),
+      ...newDraft(left === 0),
       answers: n.answers,
-      rounds: n.rounds,
-      letter: buildLetter(q.name, n.answers, n.rounds, { summary: n.summary, next: n.next }),
+      rounds,
+      letter: buildLetter(q.name, n.answers, rounds, { summary: n.summary, next: n.next }),
       letterEdited: false,
     },
   };
@@ -331,6 +339,7 @@ export default function BatonApp() {
       body = draft && (
         <Letter
           draft={draft}
+          left={left}
           onRounds={(r) => {
             setDraft((d) => ({ ...d, rounds: r, letter: buildLetter(name, d.answers, r), letterEdited: false }));
           }}
@@ -432,7 +441,7 @@ export default function BatonApp() {
         </button>
         {name && (
           <span className="top-ticket" aria-label="今月の相談チケット">
-            {name}さん｜チケット 残り <b data-testid="tickets-left">{left}</b>/{TICKETS_PER_MONTH}
+            {name}さん｜チケット 残り <b data-testid="tickets-left">{fmtTickets(left)}</b>/{TICKETS_PER_MONTH}
           </span>
         )}
       </header>
@@ -537,7 +546,7 @@ function Welcome({ onDone }: { onDone: (name: string) => void }) {
       <section>
         <Hakase>
           {trimmed}さん、よろしくのう。<br />
-          今月の相談チケットは<b>{TICKETS_PER_MONTH}枚</b>じゃ。週に1回、気軽においで。
+          今月の相談チケットは<b>{TICKETS_PER_MONTH}枚</b>じゃ。じっくり大（1枚）なら週に1回、手軽な小（0.5枚）なら週に2回ほど、気軽においで。
         </Hakase>
         <button type="button" className="btn-big" onClick={() => {
           clearNm();
@@ -621,7 +630,10 @@ function AboutSheet({ kind, onClose }: { kind: SheetKind; onClose: () => void })
           <p>{'バトン博士が勧めてくれた、専門家への手紙です。あなたが相談したい内容に対して、どんな立場で話を掘り下げてくれるかなどが書かれています。'}</p>
         )}
         {kind === 'bottle' && (
-          <p>{'AIは、長い話のなかで、記憶が抜けたり、答えの精度が下がったりすることがあります。水筒は、そうならないうちに話をまとめるための、目安のゲージです。'}</p>
+          <>
+            <p>{'AIは、長い話のなかで、記憶が抜けたり、答えの精度が下がったりすることがあります。水筒は、そうならないうちに話をまとめるための、目安のゲージです。'}</p>
+            <p>{'水筒の大きさで、使うチケットが変わります。小（5回）はチケット0.5枚、大（10回）は1枚です。'}</p>
+          </>
         )}
         <p className="sheet-note">※本アプリは医療機関の診察や治療を行うものではありません</p>
         <button type="button" ref={closeRef} className="btn-big" data-testid="about-close" onClick={onClose}>とじる</button>
@@ -655,14 +667,14 @@ function Study(props: {
           <>今月のチケットはもう使い切ったぞ。じゃが、おぬし自身のAIで続けることはできるぞ。</>
         )}
       </Hakase>
-      <div className="tickets" aria-label={`今月の相談チケット 残り${left}枚`}>
+      <div className="tickets" aria-label={`今月の相談チケット 残り${fmtTickets(left)}枚`}>
         <span className="tickets-title">今月の相談チケット</span>
         <span className="ticket-row">
           {Array.from({ length: TICKETS_PER_MONTH }, (_, i) => (
-            <span key={i} className={i < left ? 'ticket on' : 'ticket off'} />
+            <span key={i} className={left - i >= 1 ? 'ticket on' : left - i >= 0.5 ? 'ticket half' : 'ticket off'} />
           ))}
         </span>
-        <span className="tickets-count">残り <b>{left}</b>枚／{TICKETS_PER_MONTH}枚</span>
+        <span className="tickets-count">残り <b>{fmtTickets(left)}</b>枚／{TICKETS_PER_MONTH}枚</span>
       </div>
       {props.hasReturn && (
         <button type="button" className="btn-big btn-accent" onClick={props.onReturn}>相談から帰ってきた（持ち帰り）</button>
@@ -943,13 +955,17 @@ function Confirm(props: {
 /* ⑤ 紹介状（中身は見せない。出発の画面で AI のボタンを押すと、自動でコピーされる） */
 function Letter(props: {
   draft: Draft;
+  left: number;
   onRounds: (r: Rounds) => void;
   onNext: () => void;
   onBack: () => void;
   onHelp: () => void;
 }) {
-  const { draft } = props;
+  const { draft, left } = props;
   const field = findField(draft.answers.fieldId);
+  // 残りが足りない大きさは選べない（自分のAIで受け取るとき・もう使ったときを除く）。使ったあとは大きさを変えられない
+  const short = (r: Rounds) => !draft.baton && !draft.ticketUsed && left < ticketCost(r);
+  const anyShort = ROUND_CHOICES.some((r) => short(r));
   return (
     <section>
       <Hakase>
@@ -961,11 +977,21 @@ function Letter(props: {
         <Bottle rounds={draft.rounds} level={5} />
         <span className="rounds-label">水筒の大きさ<br /><small data-testid="bottle-label">満タン（{draft.rounds}回分）</small></span>
         {ROUND_CHOICES.map((r) => (
-          <button key={r} type="button" className={draft.rounds === r ? 'btn-choice picked' : 'btn-choice'} onClick={() => props.onRounds(r)}>
+          <button
+            key={r}
+            type="button"
+            className={draft.rounds === r ? 'btn-choice picked' : 'btn-choice'}
+            data-testid={`rounds-${r}`}
+            disabled={draft.ticketUsed || short(r)}
+            onClick={() => props.onRounds(r)}
+          >
             {r <= 5 ? '小' : '大'}（{r}回）
+            <small className="choice-sub">チケット{fmtTickets(ticketCost(r))}枚</small>
           </button>
         ))}
       </div>
+      {anyShort && <p className="ng-text" data-testid="rounds-short">※チケットが足りんぞ（残り{fmtTickets(left)}枚）</p>}
+      {draft.ticketUsed && <p className="hint">この相談のチケットはもう使ったぞ。水筒の大きさは、もう変えられんぞ。</p>}
       <p className="hint">
         水筒とは、相談する先生（AI）と<b>つづけて話せる回数</b>のことじゃ。おぬしが1回話して、先生が1回答えたら「1回」と数える。
         小さい水筒は5回、大きい水筒は10回まで。ちょっと聞きたいだけなら小、じっくり相談したいなら大がよいぞ。
@@ -1017,7 +1043,7 @@ function Depart(props: {
   let ticketMsg: string;
   if (draft.ticketUsed) ticketMsg = 'この相談のチケットはもう使ったぞ。別のAIを開き直しても、チケットは減らん。';
   else if (draft.baton) ticketMsg = '今回はおぬし自身のAIで受け取るので、チケットは使わんぞ。';
-  else if (left > 0) ticketMsg = `AIのボタンを押すと、チケットを1枚使うぞ（いま残り${left}枚）。`;
+  else if (left > 0) ticketMsg = `AIのボタンを押すと、チケットを${fmtTickets(ticketCost(draft.rounds))}枚使うぞ（いま残り${fmtTickets(left)}枚）。`;
   else ticketMsg = 'チケットが無いので、おぬし自身のAIでバトンを受け取るんじゃ（チケットは使わん）。';
 
   const open = async (id: string, url: string, label: string) => {

@@ -150,3 +150,7 @@ export function clearSaved() {
 }
 
 export const ticketsLeft = (s: Saved) => Math.max(0, TICKETS_PER_MONTH - s.ticketsUsed);
+/** 水筒の大きさごとに使うチケット（小＝5回＝0.5枚、大＝10回＝1枚）。0.5刻みなので、足し引きの誤差は出ない */
+export const ticketCost = (r: Rounds) => (r === 10 ? 1 : 0.5);
+/** チケットの枚数の見せ方：整数は「3」、半端は「3.5」 */
+export const fmtTickets = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
