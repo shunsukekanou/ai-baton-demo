@@ -1,4 +1,4 @@
-:HL["/ai-baton-demo/_next/static/chunks/0l4incx4-4rpk.css","style"]
+:HL["/ai-baton-demo/_next/static/chunks/05imcvpho969q.css","style"]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"/_not-found","h":96,"c":"$Q2"}]]
-0:{"b":"C0TwT3kUT6FqFujRpIvYd","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"29whq4UUTn6Wvcq3zUvV_","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

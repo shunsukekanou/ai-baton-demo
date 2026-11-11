@@ -18,7 +18,7 @@ import {
   type Rounds,
 } from '@/lib/data';
 import { buildLetter } from '@/lib/letter';
-import { copyText, readText } from '@/lib/clipboard';
+import { copyText } from '@/lib/clipboard';
 import { browserTarget, externalUrl, isInAppBrowser } from '@/lib/inapp';
 import {
   clearInput,
@@ -477,12 +477,26 @@ function Hakase({ children }: { children: ReactNode }) {
   );
 }
 
-function Bottle({ rounds }: { rounds: Rounds }) {
+/** 電池の目盛りつき水筒。level＝残り段数（0〜5）。10回の水筒は少し大きく描く */
+function Bottle({ rounds, level = 5 }: { rounds: Rounds; level?: number }) {
+  const big = rounds === 10;
   return (
-    <svg className="bottle" viewBox="0 0 40 64" width="34" height="54" aria-hidden="true">
+    <svg className="bottle" data-testid="bottle" data-level={level} viewBox="0 0 40 64" width={big ? 44 : 34} height={big ? 70 : 54} role="img" aria-label={`水筒の残り ${level}/5`}>
       <rect x="14" y="2" width="12" height="7" rx="2" fill="#8a5a2b" />
       <rect x="7" y="9" width="26" height="52" rx="8" fill="#fff" stroke="#3d6e8f" strokeWidth="2.5" />
-      <rect x="9.5" y={rounds === 10 ? 12 : 30} width="21" height={rounds === 10 ? 46.5 : 28.5} rx="6" fill="#7fc3e6" />
+      {[0, 1, 2, 3, 4].map((k) => {
+        const filled = 4 - k < level;
+        return (
+          <rect
+            key={k}
+            data-block={filled ? 'full' : 'empty'}
+            x="11.5" y={14 + k * 8.8} width="17" height="7" rx="1.8"
+            fill={filled ? '#7fc3e6' : '#f4f1ea'}
+            stroke={filled ? '#4f9bc4' : '#d8d2c4'}
+            strokeWidth="1"
+          />
+        );
+      })}
     </svg>
   );
 }
@@ -810,8 +824,8 @@ function Letter(props: {
         水筒を持って行っておいで。
       </Hakase>
       <div className="rounds">
-        <Bottle rounds={draft.rounds} />
-        <span className="rounds-label">水筒の大きさ</span>
+        <Bottle rounds={draft.rounds} level={5} />
+        <span className="rounds-label">水筒の大きさ<br /><small data-testid="bottle-label">満タン（{draft.rounds}回分）</small></span>
         {ROUND_CHOICES.map((r) => (
           <button key={r} type="button" className={draft.rounds === r ? 'btn-choice picked' : 'btn-choice'} onClick={() => props.onRounds(r)}>
             {r <= 5 ? '小' : '大'}（{r}回）
@@ -884,6 +898,10 @@ function Depart(props: {
   return (
     <section>
       <Hakase>水筒を持って相談しておいで。</Hakase>
+      <div className="bottle-status">
+        <Bottle rounds={draft.rounds} level={5} />
+        <span data-testid="bottle-label">水筒 満タン（{draft.rounds}回分）</span>
+      </div>
       <p className="ticket-msg" data-testid="ticket-msg">{ticketMsg}</p>
       <p className="hint">ふだんよく使うAIがあれば、それがおすすめじゃな。AIに「記憶」の機能があれば、オンにしておくと、おぬしのことを覚えて答えてくれるぞ。</p>
       <div className="choices">
@@ -942,33 +960,29 @@ function Depart(props: {
 function Return({ onSave, onSaveContinue, onBack }: { onSave: (summary: string, next: string) => void; onSaveContinue: (summary: string, next: string) => void; onBack: () => void }) {
   const [summary, setSummary, clearSummary] = usePersistedText('summary');
   const [next, setNext, clearNext] = usePersistedText('next');
-  const [pasteNg, setPasteNg] = useState(false);
   const filled = !!summary.trim();
-  const pasteFromClipboard = async () => {
-    const t = await readText();
-    if (t && t.trim()) {
-      setSummary(t);
-      setPasteNg(false);
-    } else setPasteNg(true);
-  };
+  const pasteHelp = '📋 この枠の中を長押しして「ペースト（貼り付け）」を押してください（パソコンはクリックして Ctrl＋V）';
   return (
     <section>
       <Hakase>
         {filled
           ? 'よしよし、しっかり受け取ったぞ！ あとは下の「ノートにしまう」ボタンを押せば、記録完了じゃ！'
-          : 'おかえり！ 先生（AI）との相談はどうじゃったかな？ 下の大きなボタンを押して、コピーしてきた「持ち帰りメモ」を貼り付けておくれ。'}
+          : 'おかえり！ 先生（AI）との相談はどうじゃったかな？ 下の大きな枠を長押し（パソコンはクリック）して、コピーしてきた「持ち帰りメモ」を貼り付けておくれ。'}
       </Hakase>
-      {!filled && (
-        <button type="button" className="btn-big btn-accent paste-sign" data-testid="paste-sign" onClick={pasteFromClipboard}>
-          📋 ここをタップして、コピーした先生のメモを貼り付ける
-        </button>
-      )}
+      <div className="bottle-status">
+        <Bottle rounds={5} level={0} />
+        <span data-testid="bottle-label">水筒が空になったぞ（おつかれさま！）</span>
+      </div>
       <label className="field-label" htmlFor="sum">先生の話のまとめ（持ち帰りメモ）</label>
-      <textarea id="sum" className="input area" rows={7} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="AIの最後の返事を貼り付ける" />
-      <button type="button" className="btn-small" onClick={pasteFromClipboard}>
-        コピーしたものを貼る
-      </button>
-      {pasteNg && <p className="ng-text">うまく自動で貼れんかった。下の欄を長押し（または右クリック）して「貼り付け（ペースト）」を押しておくれ。</p>}
+      {!filled && <p className="paste-help" data-testid="paste-help">{pasteHelp}</p>}
+      <textarea
+        id="sum"
+        className={`input area${filled ? '' : ' paste-box'}`}
+        rows={7}
+        value={summary}
+        onChange={(e) => setSummary(e.target.value)}
+        placeholder={pasteHelp}
+      />
       <label className="field-label" htmlFor="nx">次にやること（書かなくてもよいぞ）</label>
       <textarea id="nx" className="input area" rows={3} value={next} onChange={(e) => setNext(e.target.value)} placeholder="例：明日、表の合計を関数でやってみる" />
       <button type="button" className={`btn-big${filled ? ' attn' : ''}`} disabled={!filled} onClick={() => {
