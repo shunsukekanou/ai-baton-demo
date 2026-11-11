@@ -114,6 +114,7 @@ export default function BatonApp() {
   const nextState = useRef<Record<string, unknown>>({});
   const [fixing, setFixing] = useState(false);
   const [flash, setFlash] = useState('');
+  const [sheet, setSheet] = useState<{ kind: SheetKind; screen: string } | null>(null);
 
   // 起動時：LocalStorage から読み込む（サーバーでの下書き表示と食い違わないよう、読み込み後に描く）
   useEffect(() => {
@@ -191,6 +192,7 @@ export default function BatonApp() {
   const name = s.name;
   const draft = s.draft;
   const screen = s.screen as Screen;
+  const openSheet = (kind: SheetKind) => setSheet({ kind, screen });
 
   const go = (sc: Screen, f?: (p: Saved) => Saved) => {
     setS((p) => (p ? { ...(f ? f(p) : p), screen: sc } : p));
@@ -265,6 +267,7 @@ export default function BatonApp() {
           onChat={() => go('chat')}
           onNotes={() => go('notes')}
           onReturn={() => go('return')}
+          onAbout={() => openSheet('about')}
         />
       );
       break;
@@ -317,6 +320,7 @@ export default function BatonApp() {
           }}
           onNext={() => go('depart')}
           onBack={() => go('confirm')}
+          onHelp={() => openSheet('letter')}
         />
       );
       break;
@@ -331,6 +335,7 @@ export default function BatonApp() {
           })}
           onReturn={() => go('return')}
           onBack={() => go('letter')}
+          onHelp={() => openSheet('bottle')}
         />
       );
       break;
@@ -376,6 +381,7 @@ export default function BatonApp() {
             });
           }}
           onBack={() => go('depart')}
+          onHelp={() => openSheet('bottle')}
         />
       );
       break;
@@ -402,15 +408,19 @@ export default function BatonApp() {
   }
 
   return (
-    <div className="page">
+    <div className="page room">
       <header className="top">
         <span className="brand">AI-Baton</span>
+        <button type="button" className="about-btn" data-testid="about-open" onClick={() => openSheet('about')}>
+          ？ AI-Batonとは
+        </button>
         {name && (
           <span className="top-ticket" aria-label="今月の相談チケット">
             {name}さん｜チケット 残り <b data-testid="tickets-left">{left}</b>/{TICKETS_PER_MONTH}
           </span>
         )}
       </header>
+      {sheet && sheet.screen === screen && <AboutSheet kind={sheet.kind} onClose={() => setSheet(null)} />}
       <main className="main" data-screen={screen}>
         {inApp && !inAppOk && (
           <div className="inapp" role="alert">
@@ -542,6 +552,68 @@ function Welcome({ onDone }: { onDone: (name: string) => void }) {
 }
 
 /* ② 博士の書斎 */
+type SheetKind = 'about' | 'letter' | 'bottle';
+const SHEET_TITLES: Record<SheetKind, string> = { about: 'AI-Batonとは', letter: '手紙（紹介状）とは', bottle: '水筒とは' };
+
+/** やさしい一言＋「？」（くわしい説明シートを開く） */
+function HintLine({ text, onMore, label, testId }: { text: string; onMore: () => void; label: string; testId: string }) {
+  return (
+    <p className="room-intro" data-testid={testId}>
+      {text}
+      <button type="button" className="intro-more" aria-label={label} onClick={onMore}>？</button>
+    </p>
+  );
+}
+
+/* 「AI-Batonとは」の説明シート（下から開く）。外側タップ・「とじる」・Esc で閉じる */
+function AboutSheet({ kind, onClose }: { kind: SheetKind; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const prevFocus = document.activeElement as HTMLElement | null;
+    const raf = requestAnimationFrame(() => setShown(true));
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      prevFocus?.focus?.();
+    };
+  }, [onClose]);
+  return (
+    <div className={shown ? 'sheet-back shown' : 'sheet-back'} data-testid="about-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="about-title" data-testid="about-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-grip" aria-hidden="true" />
+        <h2 id="about-title" className="sheet-title">{SHEET_TITLES[kind]}</h2>
+        {kind === 'about' && (
+          <>
+            <p>{'AI-Batonは、よくわからない心の悩みや頭のもやもやを、少しずつほどいていくための、AIへの相談窓口です。バトン博士に紹介されたそれぞれの相談役に、あなたの話を聞いてもらってください。行動への第一歩につながるかもしれません。'}</p>
+            <ol className="sheet-steps">
+              <li><b>①</b> 博士が話を聞く・手紙を書く</li>
+              <li><b>②</b> 水筒を持って相談役へ</li>
+              <li><b>③</b> 行動への第一歩を持ち帰る</li>
+            </ol>
+          </>
+        )}
+        {kind === 'letter' && (
+          <p>{'バトン博士が勧めてくれた、専門家への手紙です。あなたが相談したい内容に対して、どんな立場で話を掘り下げてくれるかなどが書かれています。'}</p>
+        )}
+        {kind === 'bottle' && (
+          <p>{'AIは、長い話のなかで、記憶が抜けたり、答えの精度が下がったりすることがあります。水筒は、そうならないうちに話をまとめるための、目安のゲージです。'}</p>
+        )}
+        <p className="sheet-note">※本アプリは医療機関の診察や治療を行うものではありません</p>
+        <button type="button" ref={closeRef} className="btn-big" data-testid="about-close" onClick={onClose}>とじる</button>
+      </div>
+    </div>
+  );
+}
+
 function Study(props: {
   name: string;
   left: number;
@@ -551,10 +623,15 @@ function Study(props: {
   onChat: () => void;
   onNotes: () => void;
   onReturn: () => void;
+  onAbout: () => void;
 }) {
   const { name, left } = props;
   return (
     <section>
+      <p className="room-intro" data-testid="intro-line">
+        ここは、心のもやもやを話して、一歩ふみ出すための相談窓口じゃ。
+        <button type="button" className="intro-more" data-testid="intro-more" onClick={props.onAbout}>詳しく</button>
+      </p>
       <Hakase>
         {left > 0 ? (
           <>{name}さん、よくきたのう。今日はどうしたんじゃ？</>
@@ -814,6 +891,7 @@ function Letter(props: {
   onRounds: (r: Rounds) => void;
   onNext: () => void;
   onBack: () => void;
+  onHelp: () => void;
 }) {
   const { draft } = props;
   const field = findField(draft.answers.fieldId);
@@ -823,6 +901,7 @@ function Letter(props: {
         よし、紹介状を書いたぞ。「{field?.role ?? '相談役'}」に話を聞いてもらうとよい。
         水筒を持って行っておいで。
       </Hakase>
+      <HintLine testId="hint-letter" text="博士が書く、専門家への手紙じゃ。どう話を聞いてくれるかが書いてある。" onMore={props.onHelp} label="手紙のくわしい説明" />
       <div className="rounds">
         <Bottle rounds={draft.rounds} level={5} />
         <span className="rounds-label">水筒の大きさ<br /><small data-testid="bottle-label">満タン（{draft.rounds}回分）</small></span>
@@ -850,6 +929,7 @@ function Depart(props: {
   onOpen: (aiId: string) => void;
   onReturn: () => void;
   onBack: () => void;
+  onHelp: () => void;
 }) {
   const { draft, left } = props;
   const [msg, setMsg] = useState<{ ai: string; copied: boolean } | null>(null);
@@ -902,6 +982,7 @@ function Depart(props: {
         <Bottle rounds={draft.rounds} level={5} />
         <span data-testid="bottle-label">水筒 満タン（{draft.rounds}回分）</span>
       </div>
+      <HintLine testId="hint-bottle" text="AIが話を忘れないうちに、まとめる目安のゲージじゃ。" onMore={props.onHelp} label="水筒のくわしい説明" />
       <p className="ticket-msg" data-testid="ticket-msg">{ticketMsg}</p>
       <p className="hint">ふだんよく使うAIがあれば、それがおすすめじゃな。AIに「記憶」の機能があれば、オンにしておくと、おぬしのことを覚えて答えてくれるぞ。</p>
       <div className="choices">
@@ -957,7 +1038,7 @@ function Depart(props: {
 }
 
 /* ⑦ 持ち帰り */
-function Return({ onSave, onSaveContinue, onBack }: { onSave: (summary: string, next: string) => void; onSaveContinue: (summary: string, next: string) => void; onBack: () => void }) {
+function Return({ onSave, onSaveContinue, onBack, onHelp }: { onSave: (summary: string, next: string) => void; onSaveContinue: (summary: string, next: string) => void; onBack: () => void; onHelp: () => void }) {
   const [summary, setSummary, clearSummary] = usePersistedText('summary');
   const [next, setNext, clearNext] = usePersistedText('next');
   const filled = !!summary.trim();
@@ -973,6 +1054,7 @@ function Return({ onSave, onSaveContinue, onBack }: { onSave: (summary: string, 
         <Bottle rounds={5} level={0} />
         <span data-testid="bottle-label">水筒が空になったぞ（おつかれさま！）</span>
       </div>
+      <HintLine testId="hint-bottle" text="AIが話を忘れないうちに、まとめる目安のゲージじゃ。" onMore={onHelp} label="水筒のくわしい説明" />
       <label className="field-label" htmlFor="sum">先生の話のまとめ（持ち帰りメモ）</label>
       {!filled && <p className="paste-help" data-testid="paste-help">{pasteHelp}</p>}
       <textarea
@@ -1016,6 +1098,7 @@ function Notes(props: {
   return (
     <section>
       <Hakase>{props.flash || (props.notes.length ? 'これまでの相談ノートじゃ。読み返すと、案外ヒントがあるもんじゃよ。' : 'まだノートは空っぽじゃ。相談したら、ここにしまっておくぞ。')}</Hakase>
+      <p className="room-intro" data-testid="hint-notes">相談役と一緒に見つけた「行動への第一歩」をしまっておくノートじゃ。</p>
       <h2 className="q-title">相談ノート（{props.notes.length}件）</h2>
       <ul className="notes">
         {props.notes.map((n) => (

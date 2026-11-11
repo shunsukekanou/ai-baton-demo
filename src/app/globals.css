@@ -225,3 +225,101 @@ details summary { cursor: pointer; color: var(--main-dark); font-size: 15px; }
 .paste-help { margin: 4px 0 8px; font-size: 18px; font-weight: 700; line-height: 1.6; color: #8a4f10; }
 .input.paste-box { border: 4px solid var(--accent); background: #fffaf0; }
 .input.paste-box::placeholder { color: #a9661b; font-weight: 700; font-size: 16px; }
+
+/* ==== 絵本の待合室（試作・② 書斎だけ。ここから下を消せば元に戻る）==== */
+body:has(.page.room) { background: #FBF6EC; }
+.page.room {
+  --bg: #FBF6EC; --paper: #FFFEFA; --ink: #3B3530; --ink-soft: #7A6F63;
+  --main: #3F7F6C; --main-dark: #336A59; --soft: #F5D9A6; --line: #E7DCC6; --radius: 22px;
+  background: #FBF6EC; color: var(--ink);
+}
+.room .top { background: transparent; color: var(--ink); border-bottom: 1px dashed var(--line); padding: 12px 16px; }
+.room .brand { color: var(--main-dark); font-size: 20px; }
+.room .top-ticket { color: var(--ink-soft); width: 100%; }
+.about-btn {
+  margin-left: auto; min-height: 40px; padding: 6px 14px; border-radius: 999px;
+  background: var(--paper); color: var(--main-dark); border: 1.5px solid var(--main);
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.room-intro {
+  margin: 0; padding: 12px 16px; background: #E9F2EC; color: var(--ink); border-radius: var(--radius);
+  font-size: 16px; line-height: 1.7;
+}
+.intro-more {
+  margin-left: 6px; padding: 2px 12px; min-height: 32px; border-radius: 999px; border: 1.5px solid var(--main);
+  background: var(--paper); color: var(--main-dark); font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.room .hakase-img { border: 3px solid #E3D3B3; box-shadow: 0 4px 12px rgba(120, 90, 50, .15); }
+.room .bubble {
+  border: 1px solid var(--line); border-radius: 18px; padding: 10px 16px 8px;
+  line-height: 30px;
+  background-color: var(--paper);
+  background-origin: content-box; background-clip: padding-box;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 28px, #EADFC8 28px, #EADFC8 29px, transparent 29px, transparent 30px);
+  box-shadow: 0 6px 16px rgba(120, 90, 50, .12);
+}
+.room .bubble::before { border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.room .btn-big { border-radius: 999px; box-shadow: 0 8px 18px rgba(63, 127, 108, .28); }
+.room .btn-big:active { transform: translateY(2px); box-shadow: 0 3px 8px rgba(63, 127, 108, .25); }
+.room .btn-soft { background: #F5D9A6; color: var(--ink); box-shadow: 0 8px 18px rgba(190, 140, 60, .25); }
+.room .btn-accent { background: #F2C9A0; color: var(--ink); box-shadow: 0 8px 18px rgba(190, 120, 60, .25); }
+.room .btn-small { border-radius: 999px; border: 1.5px solid var(--main); }
+.room .tickets { border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(120, 90, 50, .08); }
+.room .ticket { border-color: #C9A56B; }
+.room .ticket.on { background: #F5D9A6; }
+
+.sheet-back {
+  position: fixed; inset: 0; z-index: 50; background: rgba(59, 53, 48, 0); display: flex; align-items: flex-end; justify-content: center;
+  transition: background .35s ease;
+}
+.sheet-back.shown { background: rgba(59, 53, 48, .38); }
+.sheet {
+  width: 100%; max-width: 600px; max-height: 88vh; overflow-y: auto; background: #FFFEFA; color: #3B3530;
+  border-radius: 28px 28px 0 0; padding: 12px 20px 24px; box-shadow: 0 -10px 30px rgba(59, 53, 48, .2);
+  transform: translateY(100%); transition: transform .35s ease; display: flex; flex-direction: column; gap: 12px;
+}
+.sheet-back.shown .sheet { transform: translateY(0); }
+.sheet-grip { align-self: center; width: 44px; height: 5px; border-radius: 3px; background: #E3D3B3; }
+.sheet-title { margin: 4px 0 0; font-size: 22px; color: #336A59; }
+.sheet p { margin: 0; font-size: 17px; line-height: 1.8; }
+.sheet-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.sheet-steps li { background: #E9F2EC; border-radius: 16px; padding: 10px 14px; font-size: 17px; }
+.sheet-steps b { color: #336A59; margin-right: 4px; }
+.sheet .sheet-note { font-size: 13px; color: #7A6F63; line-height: 1.6; text-wrap: balance; }
+.sheet .btn-big { border-radius: 999px; box-shadow: 0 8px 18px rgba(63, 127, 108, .28); }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-back, .sheet { transition: none; }
+}
+/* ==== 絵本の待合室ここまで ==== */
+
+/* ==== 絵本の待合室：全画面への広げ（指示 #6）。ここから「ここまで」を消せば、書斎だけのデザインに戻る ==== */
+.room .choices .btn-choice, .room .btn-choice {
+  border-radius: 20px; background: var(--paper); border: 1.5px solid var(--line);
+  box-shadow: 0 4px 10px rgba(120, 90, 50, .08);
+}
+.room .btn-choice.picked { border-color: var(--main); background: #E4F0E9; box-shadow: 0 4px 12px rgba(63, 127, 108, .18); }
+.room .btn-choice.trouble { border-color: #D9A56B; color: #8A4F10; background: #FFF6E6; }
+.room .btn-ai { background: var(--paper); border: 2px solid var(--main); box-shadow: 0 6px 14px rgba(63, 127, 108, .16); }
+.room .input { border: 1.5px solid var(--line); border-radius: 18px; background: var(--paper); }
+.room .input:focus { outline: 3px solid #BFDCCF; border-color: var(--main); }
+.room .input.paste-box { border: 4px solid #D9A56B; background: #FFF9EC; }
+.room .input.paste-box::placeholder { color: #A9661B; }
+.room .chip { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; }
+.room .msg-h { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 4px 10px rgba(120, 90, 50, .08); }
+.room .msg-me { background: #E4F0E9; border-radius: 20px; }
+.room .fix-row { border: 1.5px solid var(--line); border-radius: 18px; background: var(--paper); }
+.room .letter-paper { border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 6px 16px rgba(120, 90, 50, .12); }
+.room .ticket-msg { background: #FFF3DC; border-left: 5px solid #D9A56B; border-radius: 16px; }
+.room .howto { border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 4px 12px rgba(120, 90, 50, .08); }
+.room .note-card { border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 6px 16px rgba(120, 90, 50, .1); }
+.room .tag { background: #E4F0E9; color: var(--main-dark); }
+.room .inapp { background: #FFF6E6; border: 1.5px solid #D9A56B; border-radius: 20px; }
+.room .demo { border-top: 1px dashed var(--line); }
+.room .btn-big.attn { outline: 3px solid #D9A56B; outline-offset: 3px; }
+.room .btn-big:disabled { background: #CFC8BB; box-shadow: none; color: #fff; }
+.room .btn-link { color: var(--ink-soft); }
+.room .bottle-status { color: #2F5D7A; background: #E6F1F6; border-radius: 26px; padding: 6px 16px; width: fit-content; max-width: 100%; }
+.room .rounds-label { color: var(--ink-soft); }
+.room .toast { background: #3B3530; border-radius: 18px; }
+.room .ng-text { color: #A5432F; }
+/* ==== 全画面への広げ ここまで ==== */
