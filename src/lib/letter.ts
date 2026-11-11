@@ -2,7 +2,9 @@
 import { EXP_CHOICES, PREF_CHOICES, findField, type Rounds } from './data';
 import type { Answers } from './storage';
 
-export function buildLetter(name: string, a: Answers, rounds: Rounds): string {
+export type PrevMemo = { summary: string; next?: string };
+
+export function buildLetter(name: string, a: Answers, rounds: Rounds, prev?: PrevMemo): string {
   const field = findField(a.fieldId);
   const role = field?.role ?? 'なんでも一緒に考える相談役';
   const pref = PREF_CHOICES.find((p) => p.label === a.pref)?.text ?? '';
@@ -22,11 +24,21 @@ export function buildLetter(name: string, a: Answers, rounds: Rounds): string {
     `・止まっているところ：${a.stuck ?? '（未選択）'}`,
     `・AIの経験：${a.exp ?? '（未選択）'}　${exp}`,
     `・答えの好み：${a.pref ?? '（未選択）'}　${pref}`,
+    ...(prev
+      ? [
+          '',
+          '■ 前回の持ち帰りメモ（ここからの続きです）',
+          `・前回のまとめ：${prev.summary}`,
+          ...(prev.next && prev.next.trim() ? [`・次にやること：${prev.next}`] : []),
+          '・お願い：これまでの話を踏まえて、続きから相談に乗ってください。最初の返事では「前回の続きですね」と受け止めてから、その後どうなったか（または今日はどこから話したいか）を1つだけ聞いてください。',
+        ]
+      : []),
     '',
     '■ 水筒のルール（大切）',
     `・この相談は ${rounds}往復 までです（往復＝相談者が1回送り、あなたが1回返事をすること。この紹介状が1往復目です）。`,
     `・毎回の返事の最初に「水筒 残り ○/${rounds}」と書いてください。最初の返事は「水筒 残り ${rounds - 1}/${rounds}」で、返事のたびに1つずつ減らします。`,
     '・残りが0になる最後の返事では、見出しを「【持ち帰りメモ】」として、①相談の要約 ②次にやること3つ をまとめてください。',
+    `・「水筒 残り 1/${rounds}」の返事の最後には、「次で水筒が最後になります。ここまでで一度【持ち帰りメモ】にまとめましょうか？ それとも最後に1つ聞いておきたいことがありますか？」と声をかけてください。`,
     '・相談者が途中で「まとめて」と言ったら、残りに関係なく【持ち帰りメモ】を書いてください。',
     '',
     '■ あなたが覚えていること（大切）',

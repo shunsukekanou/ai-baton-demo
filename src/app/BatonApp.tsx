@@ -34,6 +34,7 @@ import {
   today,
   type Answers,
   type Draft,
+  type Note,
   type Saved,
 } from '@/lib/storage';
 
@@ -90,6 +91,20 @@ function spendTicket(p: Saved): Saved {
     return { ...s, ticketsUsed: s.ticketsUsed + 1, draft: { ...s.draft, ticketUsed: true } };
   }
   return { ...s, draft: { ...s.draft, baton: true } };
+}
+
+/** ノートの持ち帰りメモを引き継いだ、新しい相談（新しい水筒）の下書きを作る */
+function continueFrom(q: Saved, n: Note): Saved {
+  return {
+    ...q,
+    draft: {
+      ...newDraft(ticketsLeft(q) === 0),
+      answers: n.answers,
+      rounds: n.rounds,
+      letter: buildLetter(q.name, n.answers, n.rounds, { summary: n.summary, next: n.next }),
+      letterEdited: false,
+    },
+  };
 }
 
 export default function BatonApp() {
@@ -341,6 +356,25 @@ export default function BatonApp() {
               return { ...p, notes: [note, ...p.notes], draft: null };
             });
           }}
+          onSaveContinue={(summary, next) => {
+            setFlash('');
+            go('depart', (p) => {
+              if (!p.draft) return p;
+              const d = p.draft;
+              const note = {
+                id: `${Date.now()}`,
+                date: today(),
+                fieldId: d.answers.fieldId,
+                summary,
+                next,
+                letter: d.letter,
+                answers: d.answers,
+                rounds: d.rounds,
+                ai: d.ai,
+              };
+              return continueFrom(refreshMonth({ ...p, notes: [note, ...p.notes] }), note);
+            });
+          }}
           onBack={() => go('depart')}
         />
       );
@@ -355,17 +389,7 @@ export default function BatonApp() {
             go('depart', (p) => {
               const n = p.notes.find((x) => x.id === id);
               if (!n) return p;
-              const q = refreshMonth(p);
-              return {
-                ...q,
-                draft: {
-                  ...newDraft(ticketsLeft(q) === 0),
-                  answers: n.answers,
-                  rounds: n.rounds,
-                  letter: n.letter,
-                  letterEdited: true,
-                },
-              };
+              return continueFrom(refreshMonth(p), n);
             });
           }}
           onHome={() => {
@@ -904,7 +928,7 @@ function Depart(props: {
 }
 
 /* ⑦ 持ち帰り */
-function Return({ onSave, onBack }: { onSave: (summary: string, next: string) => void; onBack: () => void }) {
+function Return({ onSave, onSaveContinue, onBack }: { onSave: (summary: string, next: string) => void; onSaveContinue: (summary: string, next: string) => void; onBack: () => void }) {
   const [summary, setSummary, clearSummary] = usePersistedText('summary');
   const [next, setNext, clearNext] = usePersistedText('next');
   const [pasteNg, setPasteNg] = useState(false);
@@ -935,6 +959,15 @@ function Return({ onSave, onBack }: { onSave: (summary: string, next: string) =>
           onSave(summary.trim(), next.trim());
         }}>
         ノートにしまう
+      </button>
+      <button type="button" className="btn-big btn-soft" disabled={!summary.trim()} onClick={() => {
+          const sm = summary.trim();
+          const nx = next.trim();
+          clearSummary();
+          clearNext();
+          onSaveContinue(sm, nx);
+        }}>
+        ノートにしまって、新しい水筒でつづける
       </button>
       <button type="button" className="btn-link" onClick={onBack}>もどる</button>
     </section>
